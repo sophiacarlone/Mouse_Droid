@@ -1,4 +1,5 @@
 # Mouse_Droid
 
 ## Dependencies
-Arduino - Servo.h
+Arduino - Servo library
+Arduino - NewPing library
