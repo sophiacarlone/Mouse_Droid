@@ -1,3 +1,4 @@
+#include <Servo.h>
 #include "NewPing.h"
 
 //can put these two together
