@@ -37,9 +37,73 @@ void loop() {
 
   float timing = pulseIn(SENSORECHO, HIGH);
   float distance = (timing * 0.034) / 2;
-//  float distance = timing;
 
   Serial.print("Distance is ");
   Serial.println(distance);
   delay(100);
+
+  for (int i = 0; i < 180; i++){
+    sm.write(i);
+    Serial.println(i);
+  }
+
+//  sm.write(0);
+//  int period = 1 * 6000; // .5 minutes
+//  for(int start = millis(); (millis()-start) < period;) {
+//    
+//  }
+//  sm.write(180);
+//  
+//  //int period = .5 * 6000; // .5 minutes
+//  for(int start = millis(); (millis()-start) < period;) {
+//    
+//  }
 }
+
+void Turning(){
+  float left_data;
+  float right_data;
+  sm.write(90); //TODO: figure out orientation
+  sm.write(-180);
+}
+
+//Continuous motors: assuming
+//0 is forwards (full-speed)
+//180 is backwards (full-speed)
+//90 is no speed
+void Forwards(){
+  fl.write(0);
+  bl.write(0);
+  fr.write(0);
+  br.write(0);
+}
+
+void Backwards(){
+  fl.write(180);
+  bl.write(180);
+  fr.write(180);
+  br.write(180);
+}
+
+void Stop(){
+  fl.write(90);
+  bl.write(90);
+  fr.write(90);
+  br.write(90);
+}
+
+void Left(){
+  fl.write(180);
+  bl.write(180);
+  fr.write(0);
+  br.write(0);
+}
+
+void Right(){
+  fl.write(0);
+  bl.write(0);
+  fr.write(180);
+  br.write(180);
+}
+
+//Gather .5 seconds worth of data -> average for number
