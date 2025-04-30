@@ -1,4 +1,5 @@
 #include <Servo.h>
+#include <TimeLib.h>
 
 #define FRONTLEFT 10
 #define BACKLEFT 11
@@ -7,6 +8,8 @@
 #define SENSORTRIGGER 13
 #define SENSORECHO 12
 #define SENSORMOTOR 7
+#define WAITTIME 500
+#define LOOKAHEAD 30
 
 Servo fl; //Continuous
 Servo bl; //Continuous
@@ -14,16 +17,23 @@ Servo fr; //Continuous
 Servo br; //Continuous
 Servo sm; //Positional
 
+int countItr; //number of iterations gone through
+int sumDistance; //will hold sum of distances to be averaged
+
 void setup() {
   fl.attach(FRONTLEFT);
   bl.attach(BACKLEFT);
   fr.attach(FRONTRIGHT);
   br.attach(BACKRIGHT);
   sm.attach(SENSORMOTOR);
+  
   pinMode(SENSORTRIGGER, OUTPUT);
   pinMode(SENSORECHO, INPUT);
-
   digitalWrite(SENSORTRIGGER, LOW);
+
+  sumDistance = 0;
+  countItr = 0;
+  sm.write(90);
 
   Serial.begin(9600);
 }
@@ -38,26 +48,19 @@ void loop() {
   float timing = pulseIn(SENSORECHO, HIGH);
   float distance = (timing * 0.034) / 2;
 
-  Serial.print("Distance is ");
-  Serial.println(distance);
-  delay(100);
+  sumDistance += distance;
+  countItr++;
 
-  for (int i = 0; i < 180; i++){
-    sm.write(i);
-    Serial.println(i);
+  if(millis() % WAITTIME <= 100){
+    Serial.println("hit");
+    sumDistance = sumDistance / countItr;
+    Serial.println(sumDistance);
+    if(sumDistance < LOOKAHEAD)
+         Serial.println("turn");
+    delay(100);
+    sumDistance = 0;
+    countItr = 0;
   }
-
-//  sm.write(0);
-//  int period = 1 * 6000; // .5 minutes
-//  for(int start = millis(); (millis()-start) < period;) {
-//    
-//  }
-//  sm.write(180);
-//  
-//  //int period = .5 * 6000; // .5 minutes
-//  for(int start = millis(); (millis()-start) < period;) {
-//    
-//  }
 }
 
 void Turning(){
