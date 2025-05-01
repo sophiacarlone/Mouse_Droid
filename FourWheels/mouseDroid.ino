@@ -9,6 +9,7 @@
 #define SENSORECHO 12
 #define SENSORMOTOR 7
 #define WAITTIME 500
+#define TURNTIME 5000
 #define LOOKAHEAD 30
 
 Servo fl; //Continuous
@@ -39,6 +40,24 @@ void setup() {
 }
 
 void loop() {
+  readSensor();
+
+  if(millis() % WAITTIME <= 500){
+    sumDistance = sumDistance / countItr;
+    if(sumDistance < LOOKAHEAD){
+      sumDistance = 0;
+      countItr = 0;
+      Serial.println(Turning());
+    }
+    //double check
+    delay(100);
+    sumDistance = 0;
+    countItr = 0;
+  }
+}
+
+
+void readSensor(){
   digitalWrite(SENSORTRIGGER, LOW);
   delay(2);
   digitalWrite(SENSORTRIGGER, HIGH);
@@ -50,24 +69,35 @@ void loop() {
 
   sumDistance += distance;
   countItr++;
-
-  if(millis() % WAITTIME <= 100){
-    Serial.println("hit");
-    sumDistance = sumDistance / countItr;
-    Serial.println(sumDistance);
-    if(sumDistance < LOOKAHEAD)
-         Serial.println("turn");
-    delay(100);
-    sumDistance = 0;
-    countItr = 0;
-  }
 }
 
-void Turning(){
+
+//Checking left then right (based on MY orientation and it must be held)
+String Turning(){
   float left_data;
   float right_data;
-  sm.write(90); //TODO: figure out orientation
-  sm.write(-180);
+  
+  sm.write(0); //left
+  Serial.println("turning left");
+  uint32_t period = TURNTIME;
+  for(uint32_t start = millis(); (millis()-start) < (period);){
+    readSensor();
+  }
+  left_data = sumDistance/countItr;
+  sumDistance = 0;
+  countItr = 0;
+  
+  sm.write(180); //right
+  Serial.println("turning right");
+  for(uint32_t start = millis(); (millis()-start) < (period);){
+    readSensor();
+  }
+  right_data = sumDistance/countItr;
+  sumDistance = 0;
+  countItr = 0;
+
+  sm.write(90);
+  return (left_data > right_data ? "LEFT" : "RIGHT"); //more readable for now, will prob turn to uint8 later
 }
 
 //Continuous motors: assuming
