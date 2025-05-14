@@ -8,6 +8,7 @@
 #define SENSORTRIGGER 13
 #define SENSORECHO 12
 #define SENSORMOTOR 7
+
 #define WAITTIME 500
 #define TURNTIME 5000
 #define LOOKAHEAD 30
@@ -20,6 +21,8 @@ Servo sm; //Positional
 
 int countItr; //number of iterations gone through
 int sumDistance; //will hold sum of distances to be averaged
+boolean clearAhead; //is the path clear of obstacles ahead
+String turnValue; //direction of turn
 
 void setup() {
   fl.attach(FRONTLEFT);
@@ -34,6 +37,7 @@ void setup() {
 
   sumDistance = 0;
   countItr = 0;
+  clearAhead = true;
   sm.write(90);
 
   Serial.begin(9600);
@@ -41,19 +45,57 @@ void setup() {
 
 void loop() {
   readSensor();
-
-  if(millis() % WAITTIME <= 500){
-    sumDistance = sumDistance / countItr;
-    if(sumDistance < LOOKAHEAD){
-      sumDistance = 0;
-      countItr = 0;
-      Serial.println(Turning());
+  if(clearAhead){
+    Forwards();
+    if(millis() % WAITTIME <= 500){
+      sumDistance = sumDistance / countItr;
+      if(sumDistance < LOOKAHEAD){
+        clearAhead = false;
+        sumDistance = 0;
+        countItr = 0;
+        //TODO: change strings to define ints
+        turnValue = Turning();
+      }
+      //double check
+//      delay(100);
+//      sumDistance = 0;
+//      countItr = 0;
     }
-    //double check
-    delay(100);
-    sumDistance = 0;
-    countItr = 0;
   }
+  else{
+    if (turnValue = "RIGHT") Right();
+    else Left();
+    if(millis() % WAITTIME <= 500){
+      sumDistance = sumDistance / countItr;
+      if(sumDistance > LOOKAHEAD){
+        clearAhead = true;
+//        sumDistance = 0;
+//        countItr = 0;
+      }
+      //double check
+//      delay(100);
+//      sumDistance = 0;
+//      countItr = 0;
+    }
+  }
+
+//  if(millis() % WAITTIME <= 500){
+//    sumDistance = sumDistance / countItr;
+//    if(sumDistance < LOOKAHEAD){
+//      clearAhead = false;
+//      sumDistance = 0;
+//      countItr = 0;
+//      //TODO: change strings to define ints
+//      turnValue = Turning();
+//    }
+//    //double check
+//    delay(100);
+//    sumDistance = 0;
+//    countItr = 0;
+//  }
+  delay(100);
+  sumDistance = 0;
+  countItr = 0;
 }
 
 
@@ -78,7 +120,7 @@ String Turning(){
   float right_data;
   
   sm.write(0); //left
-  Serial.println("turning left");
+//  Serial.println("turning left");
   uint32_t period = TURNTIME;
   for(uint32_t start = millis(); (millis()-start) < (period);){
     readSensor();
@@ -88,7 +130,7 @@ String Turning(){
   countItr = 0;
   
   sm.write(180); //right
-  Serial.println("turning right");
+//  Serial.println("turning right");
   for(uint32_t start = millis(); (millis()-start) < (period);){
     readSensor();
   }
@@ -126,17 +168,31 @@ void Stop(){
 }
 
 void Left(){
-  fl.write(180);
-  bl.write(180);
-  fr.write(0);
-  br.write(0);
+//  readSensor();
+//  sumDistance = sumDistance / countItr;
+//  while(sumDistance < LOOKAHEAD){
+    fl.write(180);
+    bl.write(180);
+    fr.write(0);
+    br.write(0);
+//    sumDistance = 0;
+//    countItr = 0;
+//    readSensor();
+//  }
 }
 
 void Right(){
-  fl.write(0);
-  bl.write(0);
-  fr.write(180);
-  br.write(180);
+//  readSensor();
+//  sumDistance = sumDistance / countItr;
+//  while(sumDistance < LOOKAHEAD){
+    fl.write(0);
+    bl.write(0);
+    fr.write(180);
+    br.write(180);
+//    sumDistance = 0;
+//    countItr = 0;
+//    readSensor();
+//  }
 }
 
 //Gather .5 seconds worth of data -> average for number
