@@ -40,15 +40,17 @@ void setup() {
   clearAhead = true;
   sm.write(90);
 
-  Serial.begin(9600);
+  Serial.begin(115200);
 }
 
 void loop() {
   readSensor();
+  Serial.println(sumDistance);
   if(clearAhead){
     Forwards();
     if(millis() % WAITTIME <= 500){
       sumDistance = sumDistance / countItr;
+      Serial.println(sumDistance);
       if(sumDistance < LOOKAHEAD){
         clearAhead = false;
         sumDistance = 0;
@@ -78,21 +80,6 @@ void loop() {
 //      countItr = 0;
     }
   }
-
-//  if(millis() % WAITTIME <= 500){
-//    sumDistance = sumDistance / countItr;
-//    if(sumDistance < LOOKAHEAD){
-//      clearAhead = false;
-//      sumDistance = 0;
-//      countItr = 0;
-//      //TODO: change strings to define ints
-//      turnValue = Turning();
-//    }
-//    //double check
-//    delay(100);
-//    sumDistance = 0;
-//    countItr = 0;
-//  }
   delay(100);
   sumDistance = 0;
   countItr = 0;
@@ -120,8 +107,8 @@ String Turning(){
   float right_data;
   
   sm.write(0); //left
-//  Serial.println("turning left");
-  uint32_t period = TURNTIME;
+  Serial.println("turning left");
+  uint32_t period = TURNTIME; //TODO: get rid of period
   for(uint32_t start = millis(); (millis()-start) < (period);){
     readSensor();
   }
@@ -130,7 +117,7 @@ String Turning(){
   countItr = 0;
   
   sm.write(180); //right
-//  Serial.println("turning right");
+  Serial.println("turning right");
   for(uint32_t start = millis(); (millis()-start) < (period);){
     readSensor();
   }
@@ -147,6 +134,7 @@ String Turning(){
 //180 is backwards (full-speed)
 //90 is no speed
 void Forwards(){
+  Serial.println("Forwards");
   fl.write(0);
   bl.write(0);
   fr.write(0);
@@ -168,31 +156,17 @@ void Stop(){
 }
 
 void Left(){
-//  readSensor();
-//  sumDistance = sumDistance / countItr;
-//  while(sumDistance < LOOKAHEAD){
     fl.write(180);
     bl.write(180);
     fr.write(0);
     br.write(0);
-//    sumDistance = 0;
-//    countItr = 0;
-//    readSensor();
-//  }
 }
 
 void Right(){
-//  readSensor();
-//  sumDistance = sumDistance / countItr;
-//  while(sumDistance < LOOKAHEAD){
     fl.write(0);
     bl.write(0);
     fr.write(180);
     br.write(180);
-//    sumDistance = 0;
-//    countItr = 0;
-//    readSensor();
-//  }
 }
 
 //Gather .5 seconds worth of data -> average for number
