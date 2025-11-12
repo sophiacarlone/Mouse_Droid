@@ -1,13 +1,21 @@
 #include <Servo.h>
 #include <TimeLib.h>
 
-#define FRONTLEFT 10
-#define BACKLEFT 11
-#define FRONTRIGHT 8
-#define BACKRIGHT 9
-#define SENSORTRIGGER 13
-#define SENSORECHO 12
-#define SENSORMOTOR 7
+#define FRONTLEFT       10
+#define BACKLEFT        11
+#define FRONTRIGHT      8
+#define BACKRIGHT       9
+
+#define FORWARD_SENSOR_TRIGGER  13
+#define FORWARD_SENSOR_ECHO     12
+
+#define LEFT_SENSOR_TRIGGER  1
+#define LEFT_SENSOR_ECHO     2
+
+#define RIGHT_SENSOR_TRIGGER  3
+#define RIGHT_SENSOR_ECHO     4
+
+//TODO rearrange for readability
 
 #define WAITTIME 500
 #define TURNTIME 5000
@@ -17,7 +25,6 @@ Servo fl; //Continuous
 Servo bl; //Continuous
 Servo fr; //Continuous
 Servo br; //Continuous
-Servo sm; //Positional
 
 int countItr; //number of iterations gone through
 int sumDistance; //will hold sum of distances to be averaged
@@ -29,22 +36,28 @@ void setup() {
   bl.attach(BACKLEFT);
   fr.attach(FRONTRIGHT);
   br.attach(BACKRIGHT);
-  sm.attach(SENSORMOTOR);
-  
-  pinMode(SENSORTRIGGER, OUTPUT);
-  pinMode(SENSORECHO, INPUT);
-  digitalWrite(SENSORTRIGGER, LOW);
+    
+  pinMode(FORWARD_SENSOR_TRIGGER, OUTPUT);
+  pinMode(FORWARD_SENSOR_ECHO, INPUT);
+  digitalWrite(FORWARD_SENSOR_TRIGGER, LOW);
+
+  pinMode(LEFT_SENSOR_TRIGGER, OUTPUT);
+  pinMode(LEFT_SENSOR_ECHO, INPUT);
+  digitalWrite(LEFT_SENSOR_TRIGGER, LOW);
+
+  pinMode(RIGHT_SENSOR_TRIGGER, OUTPUT);
+  pinMode(RIGHT_SENSOR_ECHO, INPUT);
+  digitalWrite(RIGHT_SENSOR_TRIGGER, LOW);
 
   sumDistance = 0;
   countItr = 0;
-  clearAhead = true;
-  sm.write(90);
+  clearAhead = true; //Initially go forwards
 
   Serial.begin(115200);
 }
 
 void loop() {
-  readSensor();
+  readSensor(0);
   Serial.println(sumDistance);
   if(clearAhead){
     Forwards();
@@ -58,12 +71,9 @@ void loop() {
         //TODO: change strings to define ints
         turnValue = Turning();
       }
-      //double check
-//      delay(100);
-//      sumDistance = 0;
-//      countItr = 0;
     }
   }
+  
   else{
     if (turnValue = "RIGHT") Right();
     else Left();
@@ -71,61 +81,71 @@ void loop() {
       sumDistance = sumDistance / countItr;
       if(sumDistance > LOOKAHEAD){
         clearAhead = true;
-//        sumDistance = 0;
-//        countItr = 0;
       }
-      //double check
-//      delay(100);
-//      sumDistance = 0;
-//      countItr = 0;
     }
   }
+  
   delay(100);
   sumDistance = 0;
   countItr = 0;
 }
 
 
-void readSensor(){
-  digitalWrite(SENSORTRIGGER, LOW);
-  delay(2);
-  digitalWrite(SENSORTRIGGER, HIGH);
-  delay(10);
-  digitalWrite(SENSORTRIGGER, LOW);
-
-  float timing = pulseIn(SENSORECHO, HIGH);
+void readSensor(int sensor){
+  float timing = 0;
+  
+  switch(sensor){ //TODO: can make these defines
+    case 0:
+      digitalWrite(FORWARD_SENSOR_TRIGGER, LOW);
+      delay(2);
+      digitalWrite(FORWARD_SENSOR_TRIGGER, HIGH);
+      delay(10);
+      digitalWrite(FORWARD_SENSOR_TRIGGER, LOW);
+      break;
+    case 1:
+      digitalWrite(LEFT_SENSOR_TRIGGER, LOW);
+      delay(2);
+      digitalWrite(LEFT_SENSOR_TRIGGER, HIGH);
+      delay(10);
+      digitalWrite(LEFT_SENSOR_TRIGGER, LOW);
+      break;
+    case 2:
+      digitalWrite(RIGHT_SENSOR_TRIGGER, LOW);
+      delay(2);
+      digitalWrite(RIGHT_SENSOR_TRIGGER, HIGH);
+      delay(10);
+      digitalWrite(RIGHT_SENSOR_TRIGGER, LOW);
+      break;
+    default:
+      break;
+  }
+  
+  timing = pulseIn(FORWARD_SENSOR_ECHO, HIGH);  
   float distance = (timing * 0.034) / 2;
 
   sumDistance += distance;
   countItr++;
 }
 
+//TODO: how are arduinos with multithreading?
 
 //Checking left then right (based on MY orientation and it must be held)
 String Turning(){
   float left_data;
   float right_data;
   
-  sm.write(0); //left
-  Serial.println("turning left");
-  uint32_t period = TURNTIME; //TODO: get rid of period
-  for(uint32_t start = millis(); (millis()-start) < (period);){
-    readSensor();
-  }
+  //left
+  readSensor(1);
   left_data = sumDistance/countItr;
   sumDistance = 0;
   countItr = 0;
   
-  sm.write(180); //right
-  Serial.println("turning right");
-  for(uint32_t start = millis(); (millis()-start) < (period);){
-    readSensor();
-  }
+  //right
+  readSensor(2);
   right_data = sumDistance/countItr;
   sumDistance = 0;
   countItr = 0;
 
-  sm.write(90);
   return (left_data > right_data ? "LEFT" : "RIGHT"); //more readable for now, will prob turn to uint8 later
 }
 
