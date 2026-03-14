@@ -58,7 +58,7 @@ void setup() {
 
 void loop() {
   readSensor(0);
-  Serial.println(sumDistance);
+//  Serial.println(sumDistance);
   if(clearAhead){
     Forwards();
     if(millis() % WAITTIME <= 500){
@@ -70,6 +70,7 @@ void loop() {
         countItr = 0;
         //TODO: change strings to define ints
         turnValue = Turning();
+        Serial.println(turnValue);
       }
     }
   }
@@ -85,7 +86,7 @@ void loop() {
     }
   }
   
-  delay(100);
+  delay(1000);
   sumDistance = 0;
   countItr = 0;
 }
@@ -123,11 +124,11 @@ void readSensor(int sensor){
   timing = pulseIn(FORWARD_SENSOR_ECHO, HIGH);  
   float distance = (timing * 0.034) / 2;
 
+  Serial.println(distance);
+
   sumDistance += distance;
   countItr++;
 }
-
-//TODO: how are arduinos with multithreading?
 
 //Checking left then right (based on MY orientation and it must be held)
 String Turning(){
@@ -137,12 +138,16 @@ String Turning(){
   //left
   readSensor(1);
   left_data = sumDistance/countItr;
+  Serial.println("left");
+  Serial.println(left_data);
   sumDistance = 0;
   countItr = 0;
   
   //right
   readSensor(2);
   right_data = sumDistance/countItr;
+  Serial.println("right");
+  Serial.println(right_data);
   sumDistance = 0;
   countItr = 0;
 
@@ -176,17 +181,17 @@ void Stop(){
 }
 
 void Left(){
-    fl.write(180);
-    bl.write(180);
-    fr.write(0);
-    br.write(0);
+  fl.write(180);
+  bl.write(180);
+  fr.write(0);
+  br.write(0);
 }
 
 void Right(){
-    fl.write(0);
-    bl.write(0);
-    fr.write(180);
-    br.write(180);
+  fl.write(0);
+  bl.write(0);
+  fr.write(180);
+  br.write(180);
 }
 
 //Gather .5 seconds worth of data -> average for number
