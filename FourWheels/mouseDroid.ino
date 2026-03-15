@@ -58,35 +58,36 @@ void setup() {
 
 void loop() {
   readSensor(0);
-//  Serial.println(sumDistance);
+  int last_time_check = 0;
+  int start_time_turn = 0; //turn time
+  Serial.println(sumDistance);
   if(clearAhead){
     Forwards();
-    if(millis() % WAITTIME <= 500){
+    if(millis() - last_time_check >= WAITTIME){
       sumDistance = sumDistance / countItr;
-      Serial.println(sumDistance);
       if(sumDistance < LOOKAHEAD){
         clearAhead = false;
         sumDistance = 0;
         countItr = 0;
-        //TODO: change strings to define ints
-        turnValue = Turning();
-        Serial.println(turnValue);
+        turnValue = Turning(); //TODO: change strings to define ints
       }
+      last_time_check += WAITTIME;
     }
   }
   
   else{
-    if (turnValue = "RIGHT") Right();
+    if (turnValue == "RIGHT") Right();
     else Left();
-    if(millis() % WAITTIME <= 500){
+    if(millis() - start_time_turn >= TURNTIME){
       sumDistance = sumDistance / countItr;
       if(sumDistance > LOOKAHEAD){
         clearAhead = true;
       }
+      start_time_turn += TURNTIME;
     }
   }
   
-  delay(1000);
+  delay(100);
   sumDistance = 0;
   countItr = 0;
 }
@@ -94,37 +95,37 @@ void loop() {
 
 void readSensor(int sensor){
   float timing = 0;
+  int sensor_trigger = 0;
+  int sensor_echo = 0;
   
-  switch(sensor){ //TODO: can make these defines
+  switch(sensor){ 
     case 0:
-      digitalWrite(FORWARD_SENSOR_TRIGGER, LOW);
-      delay(2);
-      digitalWrite(FORWARD_SENSOR_TRIGGER, HIGH);
-      delay(10);
-      digitalWrite(FORWARD_SENSOR_TRIGGER, LOW);
+      sensor_trigger = FORWARD_SENSOR_TRIGGER;
+      sensor_echo = FORWARD_SENSOR_ECHO;
       break;
+    
     case 1:
-      digitalWrite(LEFT_SENSOR_TRIGGER, LOW);
-      delay(2);
-      digitalWrite(LEFT_SENSOR_TRIGGER, HIGH);
-      delay(10);
-      digitalWrite(LEFT_SENSOR_TRIGGER, LOW);
+      sensor_trigger = LEFT_SENSOR_TRIGGER;
+      sensor_echo = LEFT_SENSOR_ECHO;
       break;
+    
     case 2:
-      digitalWrite(RIGHT_SENSOR_TRIGGER, LOW);
-      delay(2);
-      digitalWrite(RIGHT_SENSOR_TRIGGER, HIGH);
-      delay(10);
-      digitalWrite(RIGHT_SENSOR_TRIGGER, LOW);
+      sensor_trigger = RIGHT_SENSOR_TRIGGER;
+      sensor_echo = RIGHT_SENSOR_ECHO;
       break;
+    
     default:
       break;
   }
-  
-  timing = pulseIn(FORWARD_SENSOR_ECHO, HIGH);  
-  float distance = (timing * 0.034) / 2;
 
-  Serial.println(distance);
+  digitalWrite(sensor_trigger, LOW);
+  delay(2);
+  digitalWrite(sensor_trigger, HIGH);
+  delay(10);
+  digitalWrite(sensor_trigger, LOW);
+  
+  timing = pulseIn(sensor_echo, HIGH);  
+  float distance = (timing * 0.034) / 2;
 
   sumDistance += distance;
   countItr++;
@@ -134,20 +135,16 @@ void readSensor(int sensor){
 String Turning(){
   float left_data;
   float right_data;
-  
+
   //left
   readSensor(1);
   left_data = sumDistance/countItr;
-  Serial.println("left");
-  Serial.println(left_data);
   sumDistance = 0;
   countItr = 0;
   
   //right
   readSensor(2);
   right_data = sumDistance/countItr;
-  Serial.println("right");
-  Serial.println(right_data);
   sumDistance = 0;
   countItr = 0;
 
@@ -155,22 +152,22 @@ String Turning(){
 }
 
 //Continuous motors: assuming
-//0 is forwards (full-speed)
-//180 is backwards (full-speed)
+//0 is forwards for right wheels and backwards for left wheels (full-speed)
+//180 is backwards for right wheels and forwards for left wheels (full-speed)
 //90 is no speed
 void Forwards(){
   Serial.println("Forwards");
   fl.write(0);
   bl.write(0);
-  fr.write(0);
-  br.write(0);
+  fr.write(180);
+  br.write(180);
 }
 
 void Backwards(){
   fl.write(180);
   bl.write(180);
-  fr.write(180);
-  br.write(180);
+  fr.write(0);
+  br.write(0);
 }
 
 void Stop(){
@@ -181,17 +178,19 @@ void Stop(){
 }
 
 void Left(){
+  Serial.println("Left");
   fl.write(180);
   bl.write(180);
-  fr.write(0);
-  br.write(0);
+  fr.write(180);
+  br.write(180);
 }
 
 void Right(){
+  Serial.println("Right");
   fl.write(0);
   bl.write(0);
-  fr.write(180);
-  br.write(180);
+  fr.write(0);
+  br.write(0);
 }
 
 //Gather .5 seconds worth of data -> average for number
