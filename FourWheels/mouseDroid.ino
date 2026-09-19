@@ -1,35 +1,40 @@
 #include <Servo.h>
 #include <TimeLib.h>
 
+// UltraSonic Sensors
+#define FORWARD_SENSOR 0
+#define FORWARD_SENSOR_TRIGGER  13
+#define FORWARD_SENSOR_ECHO     12
+
+#define LEFT_SENSOR 1
+#define LEFT_SENSOR_TRIGGER  2
+#define LEFT_SENSOR_ECHO     4
+
+#define RIGHT_SENSOR 2
+#define RIGHT_SENSOR_TRIGGER  7
+#define RIGHT_SENSOR_ECHO     8
+
+// Wheels
 #define FRONTLEFT       10
 #define BACKLEFT        11
 #define FRONTRIGHT      8
 #define BACKRIGHT       9
-
-#define FORWARD_SENSOR_TRIGGER  13
-#define FORWARD_SENSOR_ECHO     12
-
-#define LEFT_SENSOR_TRIGGER  1
-#define LEFT_SENSOR_ECHO     2
-
-#define RIGHT_SENSOR_TRIGGER  3
-#define RIGHT_SENSOR_ECHO     4
-
-//TODO rearrange for readability
-
-#define WAITTIME 500
-#define TURNTIME 5000
-#define LOOKAHEAD 30
-
 Servo fl; //Continuous
 Servo bl; //Continuous
 Servo fr; //Continuous
 Servo br; //Continuous
 
+// Other Globals and Defines
+#define WAITTIME 500
+#define TURNTIME 5000
+#define LOOKAHEAD 30
+
 int countItr; //number of iterations gone through
 int sumDistance; //will hold sum of distances to be averaged
-boolean clearAhead; //is the path clear of obstacles ahead
-String turnValue; //direction of turn
+int temp_time; 
+int wait_time;
+
+/***************************************************/
 
 void setup() {
   fl.attach(FRONTLEFT);
@@ -51,65 +56,60 @@ void setup() {
 
   sumDistance = 0;
   countItr = 0;
-  clearAhead = true; //Initially go forwards
+  temp_time = 0;
+  wait_time = 500;
 
   Serial.begin(115200);
 }
 
+/***************************************************/
+
 void loop() {
-  readSensor(0);
-  int last_time_check = 0;
-  int start_time_turn = 0; //turn time
-  Serial.println(sumDistance);
-  if(clearAhead){
-    Forwards();
-    if(millis() - last_time_check >= WAITTIME){
-      sumDistance = sumDistance / countItr;
-      if(sumDistance < LOOKAHEAD){
-        clearAhead = false;
-        sumDistance = 0;
-        countItr = 0;
-        turnValue = Turning(); //TODO: change strings to define ints
-      }
-      last_time_check += WAITTIME;
-    }
-  }
+  int distance = readSensor(FORWARD_SENSOR);
   
-  else{
-    if (turnValue == "RIGHT") Right();
-    else Left();
-    if(millis() - start_time_turn >= TURNTIME){
-      sumDistance = sumDistance / countItr;
-      if(sumDistance > LOOKAHEAD){
-        clearAhead = true;
-      }
-      start_time_turn += TURNTIME;
+  sumDistance += distance;
+  countItr++;
+
+  if(millis() - temp_time >= wait_time){
+    if(sumDistance/countItr <= LOOKAHEAD){
+//        Serial.println(sumDistance/countItr);
+        String result = Turning(); //TODO make an uint8 when done debugging
+        (result == "LEFT") ? Left() : Right(); 
+        wait_time = 5000;
     }
+    else{
+      Forwards();
+      wait_time = 500;
+    }
+    
+    temp_time = millis();
+    sumDistance = 0;
+    countItr = 0;
   }
   
   delay(100);
-  sumDistance = 0;
-  countItr = 0;
+
 }
 
+/***************************************************/
 
-void readSensor(int sensor){
+int readSensor(int sensor){
   float timing = 0;
   int sensor_trigger = 0;
   int sensor_echo = 0;
   
   switch(sensor){ 
-    case 0:
+    case FORWARD_SENSOR:
       sensor_trigger = FORWARD_SENSOR_TRIGGER;
       sensor_echo = FORWARD_SENSOR_ECHO;
       break;
     
-    case 1:
+    case LEFT_SENSOR:
       sensor_trigger = LEFT_SENSOR_TRIGGER;
       sensor_echo = LEFT_SENSOR_ECHO;
       break;
     
-    case 2:
+    case RIGHT_SENSOR:
       sensor_trigger = RIGHT_SENSOR_TRIGGER;
       sensor_echo = RIGHT_SENSOR_ECHO;
       break;
@@ -126,10 +126,10 @@ void readSensor(int sensor){
   
   timing = pulseIn(sensor_echo, HIGH);  
   float distance = (timing * 0.034) / 2;
-
-  sumDistance += distance;
-  countItr++;
+  return distance;
 }
+
+/***************************************************/
 
 //Checking left then right (based on MY orientation and it must be held)
 String Turning(){
@@ -137,24 +137,26 @@ String Turning(){
   float right_data;
 
   //left
-  readSensor(1);
-  left_data = sumDistance/countItr;
-  sumDistance = 0;
-  countItr = 0;
+  left_data = readSensor(1);
   
   //right
-  readSensor(2);
-  right_data = sumDistance/countItr;
-  sumDistance = 0;
-  countItr = 0;
+  right_data = readSensor(2);
 
-  return (left_data > right_data ? "LEFT" : "RIGHT"); //more readable for now, will prob turn to uint8 later
+  Serial.print("left: ");
+  Serial.println(left_data); //TODO: when done with debugging, can remove variables
+  Serial.print("right: ");
+  Serial.println(right_data);
+
+  return (right_data > left_data ? "LEFT" : "RIGHT"); //TODO more readable for now, will prob turn to uint8 later
 }
+
+/***************************************************/
 
 //Continuous motors: assuming
 //0 is forwards for right wheels and backwards for left wheels (full-speed)
 //180 is backwards for right wheels and forwards for left wheels (full-speed)
 //90 is no speed
+
 void Forwards(){
   Serial.println("Forwards");
   fl.write(0);
@@ -163,6 +165,8 @@ void Forwards(){
   br.write(180);
 }
 
+/***************************************************/
+
 void Backwards(){
   fl.write(180);
   bl.write(180);
@@ -170,12 +174,16 @@ void Backwards(){
   br.write(0);
 }
 
+/***************************************************/
+
 void Stop(){
   fl.write(90);
   bl.write(90);
   fr.write(90);
   br.write(90);
 }
+
+/***************************************************/
 
 void Left(){
   Serial.println("Left");
@@ -185,6 +193,8 @@ void Left(){
   br.write(180);
 }
 
+/***************************************************/
+
 void Right(){
   Serial.println("Right");
   fl.write(0);
@@ -192,5 +202,3 @@ void Right(){
   fr.write(0);
   br.write(0);
 }
-
-//Gather .5 seconds worth of data -> average for number
